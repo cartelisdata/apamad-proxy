@@ -9,7 +9,8 @@ export default async function handler(req, res) {
     return res.status(200).end();
   }
 
-  if (!['POST'].includes(req.method)) {
+  // ✅ Autorise POST et GET
+  if (!['POST', 'GET'].includes(req.method)) {
     return res.status(405).json({ error: 'Méthode non autorisée' });
   }
 
@@ -24,11 +25,11 @@ export default async function handler(req, res) {
     timezone: 'Europe/Paris',
   };
 
-  let url = '';
-  let method = 'POST';
-  let dustBody = null;
-
   try {
+    let url = '';
+    let method = 'POST';
+    let dustBody = null;
+
     switch (type) {
       case 'create_conversation':
         url = `https://eu.dust.tt/api/v1/w/${WORKSPACE_ID}/assistant/conversations`;
@@ -63,7 +64,21 @@ export default async function handler(req, res) {
         }
         method = 'GET';
         url = `https://eu.dust.tt/api/v1/w/${WORKSPACE_ID}/assistant/conversations/${conversationId}/events`;
-        break;
+
+        const eventsRes = await fetch(url, {
+          method: 'GET',
+          headers: {
+            Authorization: `Bearer ${DUST_API_KEY}`,
+          },
+        });
+
+        const eventsData = await eventsRes.json();
+
+        if (!eventsRes.ok) {
+          return res.status(eventsRes.status).json(eventsData);
+        }
+
+        return res.status(200).json(eventsData);
 
       default:
         return res.status(400).json({ error: 'Type de requête invalide' });
@@ -73,7 +88,6 @@ export default async function handler(req, res) {
       Authorization: `Bearer ${DUST_API_KEY}`,
     };
 
-    // Ajoute Content-Type seulement pour POST
     if (method === 'POST') {
       headers['Content-Type'] = 'application/json';
     }
