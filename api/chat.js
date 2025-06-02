@@ -9,8 +9,7 @@ export default async function handler(req, res) {
     return res.status(200).end();
   }
 
-  // ✅ Autorise POST et GET (get_events)
-  if (!['POST', 'GET'].includes(req.method)) {
+  if (!['POST'].includes(req.method)) {
     return res.status(405).json({ error: 'Méthode non autorisée' });
   }
 
@@ -70,12 +69,18 @@ export default async function handler(req, res) {
         return res.status(400).json({ error: 'Type de requête invalide' });
     }
 
+    const headers = {
+      Authorization: `Bearer ${DUST_API_KEY}`,
+    };
+
+    // Ajoute Content-Type seulement pour POST
+    if (method === 'POST') {
+      headers['Content-Type'] = 'application/json';
+    }
+
     const response = await fetch(url, {
       method,
-      headers: {
-        Authorization: `Bearer ${DUST_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
+      headers,
       ...(method === 'POST' ? { body: JSON.stringify(dustBody) } : {}),
     });
 
