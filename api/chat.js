@@ -1,17 +1,26 @@
 export default async function handler(req, res) {
+  // ✅ CORS headers
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+
+  // ✅ Répondre aux requêtes OPTIONS pour les navigateurs (pré-vol)
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
+
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Méthode non autorisée' });
   }
 
-  const { type, message, conversationId, title, visibility } = req.body;
+  const { type, message, conversationId } = req.body;
   const DUST_API_KEY = process.env.DUST_API_KEY;
   const WORKSPACE_ID = 'V0Dbkz7sL9';
   const AGENT_ID = 'PuCKOfYTNx';
 
-  // Contexte requis par Dust
   const context = {
     username: 'user',
-    timezone: 'Europe/Paris',
+    timezone: 'Europe/Paris'
   };
 
   let url = '';
@@ -23,13 +32,9 @@ export default async function handler(req, res) {
       case 'create_conversation':
         url = `https://eu.dust.tt/api/v1/w/${WORKSPACE_ID}/assistant/conversations`;
         dustBody = {
-          message: {
-            ...message,
-            mentions: [{ configurationId: AGENT_ID }],
-            context,
-          },
-          title: title || 'Chat avec Apamad',
-          visibility: visibility || 'unlisted',
+          message,
+          title: 'Chat avec Apamad',
+          visibility: 'unlisted'
         };
         break;
 
@@ -38,13 +43,7 @@ export default async function handler(req, res) {
           return res.status(400).json({ error: 'conversationId requis pour send_message' });
         }
         url = `https://eu.dust.tt/api/v1/w/${WORKSPACE_ID}/assistant/conversations/${conversationId}/messages`;
-        dustBody = {
-          message: {
-            ...message,
-            mentions: [{ configurationId: AGENT_ID }],
-            context,
-          },
-        };
+        dustBody = { message };
         break;
 
       case 'get_events':
@@ -62,10 +61,10 @@ export default async function handler(req, res) {
     const response = await fetch(url, {
       method,
       headers: {
-        Authorization: `Bearer ${DUST_API_KEY}`,
-        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${DUST_API_KEY}`,
+        'Content-Type': 'application/json'
       },
-      ...(method === 'POST' ? { body: JSON.stringify(dustBody) } : {}),
+      ...(method === 'POST' ? { body: JSON.stringify(dustBody) } : {})
     });
 
     const data = await response.json();
