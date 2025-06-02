@@ -3,69 +3,75 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Méthode non autorisée' });
   }
 
+  const { type, message, conversationId } = req.body;
   const DUST_API_KEY = process.env.DUST_API_KEY;
   const WORKSPACE_ID = 'V0Dbkz7sL9';
   const AGENT_ID = 'PuCKOfYTNx';
-  const baseUrl = `https://eu.dust.tt/api/v1/w/${WORKSPACE_ID}/assistant`;
-
-  const { type, conversationId, message } = req.body;
 
   let url = '';
-  let dustBody = null;
   let method = 'POST';
+  let dustBody = null;
 
   try {
-    if (type === 'create_conversation') {
-      url = `${baseUrl}/conversations`;
-      dustBody = {
-        message: {
-          content: message,
-          mentions: [{ configurationId: AGENT_ID }]
-        },
-        title: 'Chat avec Apamad',
-        visibility: 'unlisted'
-      };
-    }
+    switch (type) {
+      case 'create_conversation':
+        url = `https://eu.dust.tt/api/v1/w/${WORKSPACE_ID}/assistant/conversations`;
+        dustBody = {
+          message: {
+            content: message,
+            mentions: [{ configurationId: AGENT_ID }],
+            context: {}
+          },
+          title: 'Chat avec Apamad',
+          visibility: 'unlisted'
+        };
+        break;
 
-    else if (type === 'send_message') {
-      if (!conversationId) throw new Error('Missing conversationId');
-      url = `${baseUrl}/conversations/${conversationId}/messages`;
-      dustBody = {
-        message: {
-          content: message,
-          mentions: [{ configurationId: AGENT_ID }]
+      case 'send_message':
+        if (!conversationId) {
+          return res.status(400).json({ error: 'conversationId requis pour send_message' });
         }
-      };
+        url = `https://eu.dust.tt/api/v1/w/${WORKSPACE_ID}/assistant/conversations/${conversationId}/messages`;
+        dustBody = {
+          message: {
+            content: message,
+            mentions: [{ configurationId: AGENT_ID }],
+            context: {}
+          }
+        };
+        break;
+
+      case 'get_events':
+        if (!conversationId) {
+          return res.status(400).json({ error: 'conversationId requis pour get_events' });
+        }
+        method = 'GET';
+        url = `https://eu.dust.tt/api/v1/w/${WORKSPACE_ID}/assistant/conversations/${conversationId}/events`;
+        break;
+
+      default:
+        return res.status(400).json({ error: 'Type de requête invalide' });
     }
 
-    else if (type === 'get_events') {
-      if (!conversationId) throw new Error('Missing conversationId');
-      url = `${baseUrl}/conversations/${conversationId}/events`;
-      method = 'GET';
-    }
-
-    else {
-      return res.status(400).json({ error: 'Invalid request type' });
-    }
-
-    const fetchOptions = {
+    const response = await fetch(url, {
       method,
       headers: {
-        Authorization: `Bearer ${DUST_API_KEY}`,
+        'Authorization': `Bearer ${DUST_API_KEY}`,
         'Content-Type': 'application/json'
-      }
-    };
+      },
+      ...(method === 'POST' ? { body: JSON.stringify(dustBody) } : {})
+    });
 
-    if (method === 'POST') {
-      fetchOptions.body = JSON.stringify(dustBody);
-    }
-
-    const response = await fetch(url, fetchOptions);
     const data = await response.json();
 
-    res.status(response.status).json(data);
+    if (!response.ok) {
+      return res.status(response.status).json(data);
+    }
+
+    return res.status(200).json(data);
+
   } catch (error) {
-    console.error('Proxy error:', error);
-    res.status(500).json({ error: error.message || 'Unknown error' });
+    console.error('Erreur dans le proxy Dust:', error);
+    return res.status(500).json({ error: error.message || 'Erreur inconnue' });
   }
 }
