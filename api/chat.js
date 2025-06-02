@@ -11,13 +11,33 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Méthode non autorisée' });
   }
 
-  const {
-    type,
-    message,
-    conversationId,
-    title,
-    visibility
-  } = req.method === 'GET' ? req.query : req.body || {};
+  // Fonction pour parser manuellement req.body si Next.js ne le fait pas
+  async function parseJsonBody(req) {
+    return new Promise((resolve) => {
+      let data = '';
+      req.on('data', chunk => (data += chunk));
+      req.on('end', () => {
+        try {
+          resolve(JSON.parse(data));
+        } catch {
+          resolve({});
+        }
+      });
+    });
+  }
+
+  let type, message, conversationId, title, visibility;
+
+  if (req.method === 'POST') {
+    const body = await parseJsonBody(req);
+    type = body?.type;
+    message = body?.message;
+    conversationId = body?.conversationId;
+    title = body?.title;
+    visibility = body?.visibility;
+  } else {
+    ({ type, message, conversationId, title, visibility } = req.query);
+  }
 
   const DUST_API_KEY = process.env.DUST_API_KEY;
   const WORKSPACE_ID = 'V0Dbkz7sL9';
@@ -38,7 +58,6 @@ export default async function handler(req, res) {
         return res.status(400).json({ error: 'conversationId requis pour get_events' });
       }
 
-      // Appel immédiat à Dust
       const eventsUrl = `https://eu.dust.tt/api/v1/w/${WORKSPACE_ID}/assistant/conversations/${conversationId}/events`;
       const eventsRes = await fetch(eventsUrl, {
         method: 'GET',
@@ -53,11 +72,9 @@ export default async function handler(req, res) {
         return res.status(eventsRes.status).json(eventsData);
       }
 
-      // ✅ Répond rapidement avec les events (laisse le front poller)
       return res.status(200).json(eventsData);
     }
 
-    // Cas POST (create/send)
     switch (type) {
       case 'create_conversation':
         url = `https://eu.dust.tt/api/v1/w/${WORKSPACE_ID}/assistant/conversations`;
