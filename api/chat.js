@@ -8,6 +8,12 @@ export default async function handler(req, res) {
   const WORKSPACE_ID = 'V0Dbkz7sL9';
   const AGENT_ID = 'PuCKOfYTNx';
 
+  // 👇 Contexte requis par Dust
+  const context = {
+    username: 'user',
+    timezone: 'Europe/Paris'
+  };
+
   let url = '';
   let method = 'POST';
   let dustBody = null;
@@ -20,7 +26,7 @@ export default async function handler(req, res) {
           message: {
             content: message,
             mentions: [{ configurationId: AGENT_ID }],
-            context: {}
+            context
           },
           title: 'Chat avec Apamad',
           visibility: 'unlisted'
@@ -36,7 +42,7 @@ export default async function handler(req, res) {
           message: {
             content: message,
             mentions: [{ configurationId: AGENT_ID }],
-            context: {}
+            context
           }
         };
         break;
