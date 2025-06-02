@@ -1,10 +1,10 @@
 export default async function handler(req, res) {
-  // ✅ CORS headers mis à jour
+  // ✅ CORS headers
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
 
-  // ✅ Réponse OPTIONS pour pré-vol
+  // ✅ Réponse pré-vol CORS
   if (req.method === 'OPTIONS') {
     return res.status(200).end();
   }
@@ -14,7 +14,14 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Méthode non autorisée' });
   }
 
-  const { type, message, conversationId, title, visibility } = req.body || {};
+  // ✅ Lecture dynamique en fonction de la méthode
+  const {
+    type,
+    message,
+    conversationId,
+    title,
+    visibility
+  } = req.method === 'GET' ? req.query : req.body || {};
 
   const DUST_API_KEY = process.env.DUST_API_KEY;
   const WORKSPACE_ID = 'V0Dbkz7sL9';
@@ -62,7 +69,6 @@ export default async function handler(req, res) {
         if (!conversationId) {
           return res.status(400).json({ error: 'conversationId requis pour get_events' });
         }
-        method = 'GET';
         url = `https://eu.dust.tt/api/v1/w/${WORKSPACE_ID}/assistant/conversations/${conversationId}/events`;
 
         const eventsRes = await fetch(url, {
