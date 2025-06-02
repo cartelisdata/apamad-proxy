@@ -14,14 +14,9 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Méthode non autorisée' });
   }
 
-  // ✅ Lecture dynamique en fonction de la méthode
-  const {
-    type,
-    message,
-    conversationId,
-    title,
-    visibility
-  } = req.method === 'GET' ? req.query : req.body || {};
+  // ✅ Lecture dynamique GET/POST
+  const input = req.method === 'GET' ? req.query : req.body || {};
+  const { type, message = {}, conversationId, title, visibility } = input;
 
   const DUST_API_KEY = process.env.DUST_API_KEY;
   const WORKSPACE_ID = 'V0Dbkz7sL9';
