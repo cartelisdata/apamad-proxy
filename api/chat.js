@@ -1,19 +1,20 @@
 export default async function handler(req, res) {
-  // ✅ CORS headers
+  // ✅ CORS headers mis à jour
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
 
-  // ✅ Handle preflight
+  // ✅ Réponse OPTIONS pour pré-vol
   if (req.method === 'OPTIONS') {
     return res.status(200).end();
   }
 
-  if (req.method !== 'POST') {
+  // ✅ Autorise POST et GET (get_events)
+  if (!['POST', 'GET'].includes(req.method)) {
     return res.status(405).json({ error: 'Méthode non autorisée' });
   }
 
-  const { type, message, conversationId, title, visibility } = req.body;
+  const { type, message, conversationId, title, visibility } = req.body || {};
 
   const DUST_API_KEY = process.env.DUST_API_KEY;
   const WORKSPACE_ID = 'V0Dbkz7sL9';
