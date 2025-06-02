@@ -3,15 +3,15 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Méthode non autorisée' });
   }
 
-  const { type, message, conversationId } = req.body;
+  const { type, message, conversationId, title, visibility } = req.body;
   const DUST_API_KEY = process.env.DUST_API_KEY;
   const WORKSPACE_ID = 'V0Dbkz7sL9';
   const AGENT_ID = 'PuCKOfYTNx';
 
-  // 👇 Contexte requis par Dust
+  // Contexte requis par Dust
   const context = {
     username: 'user',
-    timezone: 'Europe/Paris'
+    timezone: 'Europe/Paris',
   };
 
   let url = '';
@@ -24,12 +24,12 @@ export default async function handler(req, res) {
         url = `https://eu.dust.tt/api/v1/w/${WORKSPACE_ID}/assistant/conversations`;
         dustBody = {
           message: {
-            content: message,
+            ...message,
             mentions: [{ configurationId: AGENT_ID }],
-            context
+            context,
           },
-          title: 'Chat avec Apamad',
-          visibility: 'unlisted'
+          title: title || 'Chat avec Apamad',
+          visibility: visibility || 'unlisted',
         };
         break;
 
@@ -40,10 +40,10 @@ export default async function handler(req, res) {
         url = `https://eu.dust.tt/api/v1/w/${WORKSPACE_ID}/assistant/conversations/${conversationId}/messages`;
         dustBody = {
           message: {
-            content: message,
+            ...message,
             mentions: [{ configurationId: AGENT_ID }],
-            context
-          }
+            context,
+          },
         };
         break;
 
@@ -62,10 +62,10 @@ export default async function handler(req, res) {
     const response = await fetch(url, {
       method,
       headers: {
-        'Authorization': `Bearer ${DUST_API_KEY}`,
-        'Content-Type': 'application/json'
+        Authorization: `Bearer ${DUST_API_KEY}`,
+        'Content-Type': 'application/json',
       },
-      ...(method === 'POST' ? { body: JSON.stringify(dustBody) } : {})
+      ...(method === 'POST' ? { body: JSON.stringify(dustBody) } : {}),
     });
 
     const data = await response.json();
@@ -75,7 +75,6 @@ export default async function handler(req, res) {
     }
 
     return res.status(200).json(data);
-
   } catch (error) {
     console.error('Erreur dans le proxy Dust:', error);
     return res.status(500).json({ error: error.message || 'Erreur inconnue' });
